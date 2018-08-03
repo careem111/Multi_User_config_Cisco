@@ -9,12 +9,11 @@ class BgpStatus(GetConfig):
 
     def bgp_status(self):
 
-        ''' Funtion to check the BGP status'''
+        ''' method to check the BGP status'''
 
-        self.remote_conn.send('show ip bgp neighbors | i BGP neighbor|BGP state\n')
+        output = self.connection.send_command ('show ip bgp neighbors | i BGP neighbor|BGP state\n')
         time.sleep(5)
-
-        output = self.remote_conn.recv(1048576)
+        
         doutput = output.decode('utf-8')
 
         print(self.ios_version) # display the IOS version
@@ -29,11 +28,10 @@ class OspfInt(GetConfig):
 
     def ospf_int_brief(self):        
 
-        ''' Function to filter the ospf interface with 'DOWN' status'''
+        ''' method to filter the ospf interface with 'DOWN' status'''
 
-        self.remote_conn.send('show ip ospf int brief\n')
+        output = self.connection.send_command('show ip ospf int brief\n')
         time.sleep(5)
-        output = self.remote_conn.recv(1048576)
         ospf_rd = output.decode('utf-8')
         ospf_read = ospf_rd.split('\n')
         pattern_ospf = re.compile(r'(.+)( +)(.+)?(\d+)( +)(\d+)( +)(.+)( +)(\d+)( +)(.+)( +)(.+)')
