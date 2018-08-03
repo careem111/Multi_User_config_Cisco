@@ -41,7 +41,9 @@ class OspfInt(GetConfig):
         host_raw = ospf_read[-1]
         host_temp = host_raw.split('#')
         hostname = host_temp[0] 
+        
         for n, iface in enumerate(ospf_read):
+            
             if n > 1 and iface != ospf_read[-1]:
                 if '\\' not in iface and not iface.startswith(' '):
                     get_ospf = pattern_ospf.search(iface)
@@ -49,6 +51,7 @@ class OspfInt(GetConfig):
                     status = get_ospf.group(12)
                     ospf_iface = hostname + ',' + iface_ospf.strip() + ',' + status.strip()
                     ospf_list.append(ospf_iface)
+                    
                 elif 'Se' in iface and '\\' in iface:
                     iface_merge = iface.strip() + ospf_read[n + 1].strip()
                     get_ospf = pattern_ospf.search(iface_merge)
