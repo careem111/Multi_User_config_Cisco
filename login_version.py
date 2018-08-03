@@ -17,7 +17,7 @@ class GetConfig(object):
 
     def login(self):
 
-            ''' function to login to the cisco device'''
+            ''' method to login to the cisco device'''
 
             netmiko_exceptions = (netmiko.ssh_exception.NetMikoTimeoutException,
                               netmiko.ssh_exception.NetMikoAuthenticationException)
@@ -69,7 +69,7 @@ class GetConfig(object):
 
     def version(self):
 
-        ''' function to check the IOS version in cisco devices'''
+        ''' method to check the IOS version in cisco devices'''
         if self.connect_status == True:
 
             output = self.connection.send_command('sh ver' + '\n')
