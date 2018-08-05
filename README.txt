@@ -7,7 +7,7 @@ NOTE: these scripts recommended to run in python3.6
 
 Packages need to be installed.
 
-netmiko
+
 paramiko
 
 By using this script you can achive the following.
