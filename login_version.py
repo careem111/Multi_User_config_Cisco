@@ -1,15 +1,15 @@
-import netmiko
+import paramiko
 import time
-from netmiko.ssh_exception import NetMikoTimeoutException
+import os
+import traceback
 
 
 class GetConfig(object):
     # class variables
-
-    connection = ''
+    remote_conn_pre = ''
+    remote_conn = ''
     hostname = ''
     ios_version = ''
-    connect_status = False
 
     def __init__(self, ip):
 
@@ -17,67 +17,68 @@ class GetConfig(object):
 
     def login(self):
 
-            ''' method to login to the cisco device'''
-
-            netmiko_exceptions = (netmiko.ssh_exception.NetMikoTimeoutException,
-                              netmiko.ssh_exception.NetMikoAuthenticationException)
-    
-            # multiple user credential
-            login_Credential = [('username1', 'password1', 'secret1'), ('username2', 'password2', 'secret2'),
+        login_credential = [('username1', 'password1', 'secret1'), ('username2', 'password2', 'secret2'),
                                 ('username3', 'password3', 'secret3')]
-            attempts = 0
-    
-            try:
-                while attempts < 4:
-                    print('-'*79)
-                    print('connecting to device', self.ip)
-                    for username, password, secret in login_Credential:
-                        attempts += 1
-                        try:
-                            self.connection = netmiko.ConnectHandler(ip,  port=22, device_type='cisco_ios',
-                                                                username=username, password=password, secret=secret)
-                            self.connection.enable()
-                            time.sleep(1)
-                            hostname = self.connection.find_prompt() + '\n'
-                            print(hostname)  # printing hostname
-                           
-                            if '#' in hostname:
-                                    self.connect_status = True
-                                    self.connection.send_command('\n')
-                            
-                                    self.connection.send_command('terminal length 0' + '\n' )
-                        except:
-                            print('check the network status')
-                            if attempts > 3:
-                                print('check the credentials')
-                            continue
+        attempts = 0
+        # print(self.ip)
+        while attempts < 4:
+            for username, password in login_credential:
+                attempts += 1
 
-                        self.connection.clear_buffer()
-         
-                        self.connection.disconnect()
+                self.remote_conn_pre = paramiko.SSHClient()
+                self.remote_conn_pre.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                try:
+                    self.remote_conn_pre.connect(self.ip, username=username, password=password, timeout=5,
+                                                 allow_agent=False, look_for_keys=False)
 
-                        break
-                    break
+                except:
+                    attempts += 1
+                    print(self.ip, attempts)
+                    continue
 
-            except netmiko_exceptions as e:
-                print('fail to', ip, e)
-                print(ip)
-                text_file = open('FailedDevices', 'a')
-                text_file.write(self.ip+'\n')
-                text_file.close()
+                self.remote_conn = self.remote_conn_pre.invoke_shell()
+                time.sleep(3)
 
+                print(self.hostname)
+
+                if '>' in self.hostname:
+                    self.remote_conn.send('enable\n')
+                    time.sleep(2)
+                    output = self.remote_conn.recv(1048576)
+                    self.remote_conn.send(password + '\n')
+                    time.sleep(2)
+                    output = self.remote_conn.recv(1048576)
+
+                self.remote_conn.send('terminal length 0\n')
+                time.sleep(5)
+                output = self.remote_conn.recv(1048576)
+
+                if attempts == 12:
+                    print("$$$$$$$$$$$$$$$$$$$$$$$")
+                    print("\nError in " + self.ip + "\n")
+                    print(traceback.format_exc() + "\n")
+                    print("$$$$$$$$$$$$$$$$$$$$$$$")
+                    os.chdir('/home/mhariry/fo-bgp-mon/')
+                    output = open('unreachable-dev-' + time.strftime("%Y%m%d") + '.csv', 'a')
+                    output.write(self.ip + '\n')
+                    output.close()
+
+                break
+            break
 
     def version(self):
+        self.remote_conn.send('sh ver\n')
+        time.sleep(5)
+        output = self.remote_conn.recv(1048576)
+        doutput = output.decode('utf-8')
+        if 'IOS-XE' in doutput:
 
-        ''' method to check the IOS version in cisco devices'''
-        if self.connect_status == True:
+            self.ios_version = 'IOS-XE'
+        elif 'NX-OS' in doutput:
 
-            output = self.connection.send_command('sh ver' + '\n')
-            time.sleep(5)
-            doutput = output.decode('utf-8')
-            if 'IOS-XE' in doutput:
-                self.ios_version = 'IOS-XE'
-            elif 'NX-OS' in doutput:
-                self.ios_version = 'NX-OS'
-            else:
-                self.ios_version = 'IOS'
+            self.ios_version = 'NX-OS'
+        else:
+
+            self.ios_version = 'IOS'
+
+
