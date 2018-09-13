@@ -7,4 +7,4 @@ def divide(a,b):
 	
 iq = divide(100 ,2)
 
-print(iq)
+#print(iq)
